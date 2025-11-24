@@ -1,0 +1,109 @@
+# JVM Options for Ant Media Server - Ultra-Low Latency Configuration
+# Place this file in /usr/local/antmedia/conf/ or ANTMEDIA_HOME/conf/
+
+# ============================================
+# MEMORY SETTINGS
+# ============================================
+# Minimum heap size (4GB recommended for streaming)
+-Xms4g
+
+# Maximum heap size (8GB for heavy transcoding workloads)
+-Xmx8g
+
+# ============================================
+# GARBAGE COLLECTION - G1GC (Recommended)
+# ============================================
+# Use G1 Garbage Collector for low pause times
+-XX:+UseG1GC
+
+# Target maximum GC pause time (50ms for low latency)
+-XX:MaxGCPauseMillis=50
+
+# G1 Region Size (auto-tuned, but can be set explicitly)
+# -XX:G1HeapRegionSize=16m
+
+# Parallel GC threads (adjust based on CPU cores)
+-XX:ParallelGCThreads=4
+
+# Concurrent GC threads
+-XX:ConcGCThreads=2
+
+# ============================================
+# G1GC TUNING FOR STREAMING WORKLOADS
+# ============================================
+# Initiating heap occupancy percent (start GC earlier)
+-XX:InitiatingHeapOccupancyPercent=45
+
+# G1 Reserve percent (buffer for promotions)
+-XX:G1ReservePercent=15
+
+# Mixed GC live threshold
+-XX:G1MixedGCLiveThresholdPercent=85
+
+# ============================================
+# MEMORY MANAGEMENT
+# ============================================
+# Enable string deduplication (reduces memory for repeated strings)
+-XX:+UseStringDeduplication
+
+# Use compressed OOPs for 64-bit JVM (heap < 32GB)
+-XX:+UseCompressedOops
+
+# ============================================
+# NETWORK AND NIO OPTIMIZATIONS
+# ============================================
+# Increase direct memory for NIO buffers (important for streaming)
+-XX:MaxDirectMemorySize=2g
+
+# Disable biased locking (better for high-contention scenarios)
+-XX:-UseBiasedLocking
+
+# ============================================
+# JIT COMPILER OPTIMIZATIONS
+# ============================================
+# Tiered compilation for faster startup
+-XX:+TieredCompilation
+
+# Inline method size limits
+-XX:MaxInlineSize=100
+-XX:FreqInlineSize=300
+
+# ============================================
+# PERFORMANCE MONITORING (Optional)
+# ============================================
+# Enable JMX monitoring (for external monitoring tools)
+# -Dcom.sun.management.jmxremote
+# -Dcom.sun.management.jmxremote.port=9999
+# -Dcom.sun.management.jmxremote.ssl=false
+# -Dcom.sun.management.jmxremote.authenticate=false
+
+# GC logging (uncomment for debugging)
+# -Xlog:gc*:file=/var/log/antmedia/gc.log:time,uptime:filecount=5,filesize=10M
+
+# ============================================
+# NATIVE MEMORY TRACKING (Debug only)
+# ============================================
+# -XX:NativeMemoryTracking=summary
+
+# ============================================
+# CRASH HANDLING
+# ============================================
+# Heap dump on OOM
+-XX:+HeapDumpOnOutOfMemoryError
+-XX:HeapDumpPath=/var/log/antmedia/heap_dump.hprof
+
+# Error file location
+-XX:ErrorFile=/var/log/antmedia/hs_err_pid%p.log
+
+# ============================================
+# ADDITIONAL PERFORMANCE FLAGS
+# ============================================
+# Prefer IPv4 stack (can improve performance in some networks)
+-Djava.net.preferIPv4Stack=true
+
+# Disable DNS caching (useful for dynamic environments)
+-Dsun.net.inetaddr.ttl=30
+
+# Netty optimizations
+-Dio.netty.allocator.type=pooled
+-Dio.netty.leakDetection.level=disabled

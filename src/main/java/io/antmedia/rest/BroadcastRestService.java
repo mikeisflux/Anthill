@@ -539,6 +539,73 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 	}
 
+	@Operation(summary = "Add multiple third-party RTMP endpoints to the stream simultaneously",
+			description = "Adds multiple RTMP endpoints to a broadcast at once for multi-destination streaming. " +
+					"Returns a map of URL to success/failure status for each endpoint. " +
+					"Supports adding endpoints while broadcast is live.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Add multiple RTMP endpoints response",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = java.util.Map.class)
+							))
+			}
+	)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/rtmp-endpoints-batch")
+	@Produces(MediaType.APPLICATION_JSON)
+	public java.util.Map<String, Boolean> addMultipleRtmpEndpoints(
+			@Parameter(description = "Broadcast id", required = true) @PathParam("id") String id,
+			@Parameter(description = "List of RTMP endpoints to add", required = true) java.util.List<Endpoint> endpoints,
+			@Parameter(description = "Resolution height for all endpoints", required = false) @QueryParam("resolutionHeight") int resolutionHeight) {
+
+		java.util.Map<String, Boolean> results = new java.util.concurrent.ConcurrentHashMap<>();
+
+		if (endpoints == null || endpoints.isEmpty()) {
+			logger.warn("No endpoints provided for batch add to stream: {}", id);
+			return results;
+		}
+
+		Broadcast broadcast = getDataStore().get(id);
+		if (broadcast == null) {
+			logger.error("Broadcast not found with id: {}", id);
+			endpoints.forEach(ep -> {
+				if (ep != null && ep.getRtmpUrl() != null) {
+					results.put(ep.getRtmpUrl(), false);
+				}
+			});
+			return results;
+		}
+
+		for (Endpoint endpoint : endpoints) {
+			if (endpoint == null || endpoint.getRtmpUrl() == null) {
+				continue;
+			}
+
+			String rtmpUrl = endpoint.getRtmpUrl();
+			try {
+				Result addResult = addEndpointV3(id, endpoint, resolutionHeight);
+				results.put(rtmpUrl, addResult.isSuccess());
+
+				if (logger.isInfoEnabled()) {
+					logger.info("Batch add RTMP endpoint {} to stream {}: {}",
+							rtmpUrl.replaceAll(REPLACE_CHARS, "_"),
+							id.replaceAll(REPLACE_CHARS, "_"),
+							addResult.isSuccess());
+				}
+			} catch (Exception e) {
+				logger.error("Error adding RTMP endpoint {} to stream {}: {}",
+						rtmpUrl.replaceAll(REPLACE_CHARS, "_"),
+						id.replaceAll(REPLACE_CHARS, "_"),
+						e.getMessage());
+				results.put(rtmpUrl, false);
+			}
+		}
+
+		return results;
+	}
+
 	@Hidden
 	@Deprecated
 	@DELETE
